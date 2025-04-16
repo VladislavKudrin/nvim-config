@@ -24,21 +24,34 @@ return {
         "stevearc/conform.nvim",
         "williamboman/mason.nvim",
         "williamboman/mason-lspconfig.nvim",
+        "WhoIsSethDaniel/mason-tool-installer.nvim",
         "hrsh7th/cmp-nvim-lsp",
         "hrsh7th/cmp-buffer",
         "hrsh7th/cmp-path",
         "hrsh7th/cmp-cmdline",
         "hrsh7th/nvim-cmp",
         "j-hui/fidget.nvim",
+        "aiken-lang/editor-integration-nvim",
     },
     config = function()
+        require("lspconfig").aiken.setup {}
         require("conform").setup({
             formatters_by_ft = {
-                javascript = { "prettierd" },
-                typescript = { "prettierd" },
-                javascriptreact = { "prettierd" },
-                typescriptreact = { "prettierd" },
-            }
+                javascript = { "prettier" },
+                typescript = { "prettier" },
+                javascriptreact = { "prettier" },
+                typescriptreact = { "prettier" },
+            },
+            formatters = {
+                prettier = {
+                    prepend_args = { "--semi", "true" },
+                },
+                -- aikenfmt = {
+                --     command = "aiken",
+                --     args = { "fmt", "$FILENAME" }, -- use file path instead of stdin
+                --     stdin = false,
+                -- },
+            },
         })
         local cmp = require('cmp')
         local cmp_lsp = require("cmp_nvim_lsp")
@@ -48,79 +61,88 @@ return {
             vim.lsp.protocol.make_client_capabilities(),
             cmp_lsp.default_capabilities())
 
-            require("fidget").setup({})
-            require("mason").setup()
-            require("mason-lspconfig").setup({
-                automatic_installation = true,
-                ensure_installed = {
-                    "lua_ls",
-                    "pyright",
-                    'ts_ls',
-                    'eslint',
-                    'html',
-                    'cssls'
-                },
-                handlers = {
-                    function(server_name) -- default handler (optional)
-                        require("lspconfig")[server_name].setup {
-                            capabilities = capabilities
-                        }
-                    end,
-                    ["lua_ls"] = function()
-                        local lspconfig = require("lspconfig")
-                        lspconfig.lua_ls.setup {
-                            capabilities = capabilities,
-                            settings = {
-                                Lua = {
-                                    format = {
-                                        enable = true,
-                                        -- Put format options here
-                                        -- NOTE: the value should be STRING!!
-                                        defaultConfig = {
-                                            indent_style = "space",
-                                            indent_size = "2",
-                                        }
-                                    },
-                                }
+        require("fidget").setup({})
+        require("mason").setup()
+        require("mason-tool-installer").setup({
+            ensure_installed = { "aiken" }
+        })
+        require("mason-lspconfig").setup({
+            automatic_installation = true,
+            ensure_installed = {
+                "lua_ls",
+                "pyright",
+                'ts_ls',
+                'eslint',
+                'html',
+                'cssls'
+            },
+            handlers = {
+                function(server_name) -- default handler (optional)
+                    require("lspconfig")[server_name].setup {
+                        capabilities = capabilities
+                    }
+                end,
+                ["lua_ls"] = function()
+                    local lspconfig = require("lspconfig")
+                    lspconfig.lua_ls.setup {
+                        capabilities = capabilities,
+                        settings = {
+                            Lua = {
+                                format = {
+                                    enable = true,
+                                    -- Put format options here
+                                    -- NOTE: the value should be STRING!!
+                                    defaultConfig = {
+                                        indent_style = "space",
+                                        indent_size = "2",
+                                    }
+                                },
                             }
                         }
-                    end,
-                }
-            })
+                    }
+                end,
+            }
+        })
+        local cmp_select = { behavior = cmp.SelectBehavior.Select }
 
-            local cmp_select = { behavior = cmp.SelectBehavior.Select }
-
-            cmp.setup({
-                mapping = cmp.mapping.preset.insert({
-                    ['<C-p>'] = cmp.mapping.select_prev_item(cmp_select),
-                    ['<C-n>'] = cmp.mapping.select_next_item(cmp_select),
-                    ['<C-y>'] = cmp.mapping.confirm({ select = true }),
-                    ["<C-q>"] = cmp.mapping.complete(),
-                }),
-                sources = cmp.config.sources({
-                    { name = "copilot", group_index = 2 },
-                    { name = 'nvim_lsp' },
-                }, {
-                    { name = 'buffer' },
-                })
+        cmp.setup({
+            mapping = cmp.mapping.preset.insert({
+                ['<C-p>'] = cmp.mapping.select_prev_item(cmp_select),
+                ['<C-n>'] = cmp.mapping.select_next_item(cmp_select),
+                ['<C-y>'] = cmp.mapping.confirm({ select = true }),
+                ["<C-q>"] = cmp.mapping.complete(),
+            }),
+            sources = cmp.config.sources({
+                { name = "copilot", group_index = 2 },
+                { name = 'nvim_lsp' },
+            }, {
+                { name = 'buffer' },
             })
-            vim.diagnostic.config({
-                virtual_text = {
-                    prefix = "●", -- or "" or "●"
-                    spacing = 4,
-                },
-                signs = true,
-                underline = true,
-                update_in_insert = false,
-                severity_sort = true,
-                float = {
-                    focusable = false,
-                    style = "minimal",
-                    border = "rounded",
-                    ---@diagnostic disable-next-line: assign-type-mismatch
-                    source = "always",
-                    header = "",
-                    prefix = "",
-                },
-            })        end,
-        }
+        })
+        vim.diagnostic.config({
+            virtual_text = {
+                prefix = "●", -- or "" or "●"
+                spacing = 4,
+            },
+            signs = true,
+            underline = true,
+            update_in_insert = false,
+            severity_sort = true,
+            float = {
+                focusable = false,
+                style = "minimal",
+                border = "rounded",
+                ---@diagnostic disable-next-line: assign-type-mismatch
+                source = "always",
+                header = "",
+                prefix = "",
+            },
+        })
+        vim.api.nvim_create_autocmd("FileType", {
+            pattern = "aiken",
+            callback = function()
+                vim.bo.commentstring = "// %s"
+            end,
+        })
+    end,
+}

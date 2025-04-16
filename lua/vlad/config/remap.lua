@@ -29,3 +29,18 @@ vim.keymap.set("n", "<leader>pb", function()
         vim.cmd("Vex") -- open netrw in vertical split
     end
 end, { desc = "Toggle netrw vertical explorer" })
+
+vim.keymap.set("n", "<leader>td", function()
+  local current = vim.diagnostic.config().virtual_text
+  vim.diagnostic.config({ virtual_text = not current })
+end, { desc = "Toggle diagnostics virtual text" })
+
+vim.keymap.set({ "n", "v" }, "<leader>f", function()
+  require("conform").format({
+    lsp_fallback = true,
+    async = true,
+    timeout_ms = 5000,
+  })
+end, { desc = "Format file or selection with conform.nvim" })
+
+

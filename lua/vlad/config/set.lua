@@ -26,3 +26,14 @@ vim.opt.colorcolumn = "80"
 
 vim.g.mapleader = " "
 
+-- Autoformat on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+    pattern = "*",
+    callback = function(args)
+        require("conform").format({
+            bufnr = args.buf,
+            lsp_fallback = true,
+            timeout_ms = 5000,
+        })
+    end,
+})
